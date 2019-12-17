@@ -1,6 +1,9 @@
 package com.yzw.mro.distributelock.service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.connection.RedisStringCommands;
 import org.springframework.data.redis.connection.ReturnType;
 import org.springframework.data.redis.core.RedisCallback;
@@ -19,7 +22,11 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class LockService {
 
+    @Autowired
     StringRedisTemplate stringRedisTemplate;
+
+    @Autowired
+    RedissonClient redissonClient;
 
     public void setStringRedisTemplate(StringRedisTemplate stringRedisTemplate) {
         this.stringRedisTemplate = stringRedisTemplate;
@@ -62,5 +69,16 @@ public class LockService {
         } catch (Exception e) {
             log.error("释放分布式锁失败，key={}", key, e);
         }
+    }
+
+    public RLock lock(String lockKey, int leaseTime) {
+        RLock lock = redissonClient.getLock(lockKey);
+        lock.lock(leaseTime, TimeUnit.SECONDS);
+        return lock;
+    }
+
+    public void unlock(String lockKey) {
+        RLock lock = redissonClient.getLock(lockKey);
+        lock.unlock();
     }
 }
